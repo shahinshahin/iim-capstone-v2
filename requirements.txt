@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-dotenv
+openai
+pandas
+pinecone-client==3.0.0
+sentence-transformers

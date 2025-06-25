@@ -1,0 +1,27 @@
+{
+  "family": "capstone-iim-task",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "capstone-api",
+      "image": "your-dockerhub-user/capstone-api:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "OPENAI_API_KEY", "value": "your-openai-key" },
+        { "name": "PINECONE_API_KEY", "value": "your-pinecone-key" },
+        { "name": "PINECONE_INDEX_NAME", "value": "pdftest" },
+        { "name": "PINECONE_HOST", "value": "https://pdftest-g4awnmy.svc.aped-4627-b74a.pinecone.io" }
+      ],
+      "essential": true
+    }
+  ],
+  "requiresCompatibilities": [ "FARGATE" ],
+  "cpu": "256",
+  "memory": "512"
+}
