@@ -1,35 +1,33 @@
 import os
-from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec
-from sentence_transformers import SentenceTransformer
 import pandas as pd
+from dotenv import load_dotenv
+from pinecone import Pinecone
+from sentence_transformers import SentenceTransformer
+from openai import OpenAI
 
+# Load environment variables from .env
 load_dotenv()
 
-# Load Pinecone credentials and setup
+# Load API keys and index name
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
-PINECONE_ENV = os.getenv("PINECONE_ENV", "gcp-starter")  # default if missing
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# Validation
 if not PINECONE_API_KEY or not PINECONE_INDEX_NAME:
-    raise ValueError("Missing Pinecone API key or Index name in environment variables.")
+    raise ValueError("Missing Pinecone API key or index name in environment variables.")
 
+if not OPENAI_API_KEY:
+    raise ValueError("Missing OpenAI API key in environment variables.")
+
+# Initialize Pinecone and OpenAI clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
-
-# Check or create index
-if PINECONE_INDEX_NAME not in pc.list_indexes().names():
-    print(f"Creating index '{PINECONE_INDEX_NAME}'...")
-    pc.create_index(
-        name=PINECONE_INDEX_NAME,
-        dimension=768,  # Model dimension for all-MiniLM-L6-v2
-        metric="cosine",
-        spec=ServerlessSpec(cloud="aws", region="us-east-1")  # Update if needed
-    )
-
 index = pc.Index(PINECONE_INDEX_NAME)
+client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Load the embedding model
+# Load SentenceTransformer model
 model = SentenceTransformer('all-mpnet-base-v2')
+
 
 def read_file(file_path):
     ext = os.path.splitext(file_path)[-1].lower()
@@ -41,35 +39,48 @@ def read_file(file_path):
         raise ValueError(f"Unsupported file format: {ext}")
     return df
 
+
 def embed_and_store(file_path):
     df = read_file(file_path)
 
-    # Combine all columns into a single string per row
+    # Combine all columns into one text string per row
     texts = df.astype(str).agg(" ".join, axis=1).tolist()
     embeddings = model.encode(texts).tolist()
 
-    vectors = []
-    for i, (embedding, text) in enumerate(zip(embeddings, texts)):
-        vectors.append({
-            "id": f"id-{i}",
-            "values": embedding,
-            "metadata": {"text": text}  # storing for easier query viewing
-        })
-
+    # Prepare vectors for Pinecone
+    vectors = [(f"id-{i}", embeddings[i], {"text": texts[i]}) for i in range(len(texts))]
     index.upsert(vectors=vectors)
-    return f"Upserted {len(vectors)} vectors."
+    return f"Upserted {len(vectors)} vectors into index '{PINECONE_INDEX_NAME}'"
 
 
-
-
-def query_index(query_text, top_k=1):
+def query_index(query_text, top_k=5):
     query_vector = model.encode([query_text])[0].tolist()
     response = index.query(vector=query_vector, top_k=top_k, include_metadata=True)
 
-    if response and response.get("matches"):
-        top_match = response["matches"][0]
-        text = top_match.get("metadata", {}).get("text", "No metadata")
-        score = round(top_match.get("score", 0), 3)
-        return f"{text} — (score {score})"
-    else:
-        return "No results found."
+    matches = response.get("matches", [])
+    if not matches:
+        return "No relevant matches found."
+
+    top_match_text = matches[0]["metadata"].get("text", "")
+
+    # Use OpenAI to extract structured details
+    structured_output = extract_with_openai(top_match_text)
+    return structured_output
+
+
+def extract_with_openai(text):
+    system_prompt = (
+        "Extract structured electrical component details from the following text in the format: "
+        "<component> = <quantity>. Include mounting height and dimensions if mentioned."
+    )
+
+    response = client.chat.completions.create(
+        model="gpt-4o",  # You may change this to "gpt-3.5-turbo" if needed
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": text}
+        ],
+        temperature=0.2
+    )
+
+    return response.choices[0].message.content.strip()
