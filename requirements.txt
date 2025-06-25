@@ -5,3 +5,11 @@ openai
 pandas
 pinecone-client==3.0.0
 sentence-transformers
+fastapi
+uvicorn[standard]
+pandas
+python-dotenv
+pinecone-client
+sentence-transformers
+openai>=1.0.0
+python-multipart
