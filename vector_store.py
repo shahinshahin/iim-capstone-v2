@@ -88,8 +88,8 @@ def extract_structured_info(description_text: str):
 def embed_and_store(file_path):
     recreate_index()
     index = pc.Index(PINECONE_INDEX_NAME)
-
     df = read_file(file_path)
+
     if 'Description' not in df.columns:
         raise ValueError("Input file must contain a 'Description' column.")
 
@@ -97,30 +97,32 @@ def embed_and_store(file_path):
     embeddings = model.encode(texts).tolist()
 
     vectors = []
-    all_metadata_for_excel = []
+    vector_ids = []
 
     for i, text in enumerate(texts):
         extracted_items = extract_structured_info(text)
         if not extracted_items:
             metadata = {"text": text, "Raw Materials": "", "Sub QTY": ""}
-            vectors.append((f"id-{i}", embeddings[i], metadata))
-            all_metadata_for_excel.append(metadata)
+            vector_id = f"id-{i}"
+            vectors.append((vector_id, embeddings[i], metadata))
+            vector_ids.append(vector_id)
         else:
             for j, item in enumerate(extracted_items):
-                metadata = {
-                    "text": text,
-                    "Raw Materials": item.get("Raw Materials", ""),
-                    "Sub QTY": item.get("Sub QTY", 0)
-                }
-                vectors.append((f"id-{i}-{j}", embeddings[i], metadata))
-                all_metadata_for_excel.append(metadata)
+                metadata = {"Raw Materials": item.get("Raw Materials", ""), "Sub QTY": item.get("Sub QTY", 0),"Original": text}  # Ensure consistent field}
+                vector_id = f"id-{i}-{j}"
+                vectors.append((vector_id, embeddings[i], metadata))
+                vector_ids.append(vector_id)
 
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_material_metadata_to_excel(all_metadata_for_excel, file_path=f"outputs/raw_materials_before_pinecone_{timestamp}.xlsx")
-
-    logging.info(f"Upserting {len(vectors)} vectors into index '{PINECONE_INDEX_NAME}'")
     index.upsert(vectors=vectors)
-    return f"Upserted {len(vectors)} vectors into index '{PINECONE_INDEX_NAME}'"
+    logger.info(f"Upserted {len(vectors)} vectors into index '{PINECONE_INDEX_NAME}'")
+
+    # ✅ Save vector IDs locally (e.g., JSON file)
+    os.makedirs("outputs", exist_ok=True)
+    with open("outputs/vector_ids.json", "w") as f:
+        json.dump(vector_ids, f)
+
+    return f"Upserted {len(vectors)} vectors"
+
 
 def query_index(query_text, top_k=5):
     index = pc.Index(PINECONE_INDEX_NAME)
@@ -129,14 +131,19 @@ def query_index(query_text, top_k=5):
 
     matches = response.get("matches", [])
     if not matches:
-        return "No relevant matches found."
+        return []
 
-    top = matches[0]["metadata"]
-    return {
-        "Raw Materials": top.get("Raw Materials", ""),
-        "Sub QTY": top.get("Sub QTY", ""),
-        "Original": top.get("text", "")
-    }
+    results = []
+    for match in matches:
+        metadata = match.get("metadata", {})
+        results.append({
+            "Raw Materials": metadata.get("Raw Materials", ""),
+            "Sub QTY": metadata.get("Sub QTY", 1),
+            "Original": metadata.get("text", "")
+        })
+
+    return results
+
 def compute_material_cost(materials: list, material_file_path="material_details/material_details.xlsx"):
     if not os.path.exists(material_file_path):
         logger.error("Material price file not found at %s", material_file_path)
@@ -232,3 +239,52 @@ def save_material_metadata_to_excel(metadata_list, file_path):
         logger.error(f"Permission denied: close the file if open. Path: {file_path}")
     except Exception as e:
         logger.exception("Failed to save raw material metadata: %s", str(e))
+
+
+def embed_and_store(file_path):
+    recreate_index()
+    index = pc.Index(PINECONE_INDEX_NAME)
+    df = read_file(file_path)
+
+    if 'Description' not in df.columns:
+        raise ValueError("Input file must contain a 'Description' column.")
+
+    texts = df['Description'].astype(str).tolist()
+    embeddings = model.encode(texts).tolist()
+
+    vectors = []
+    all_metadata = []
+
+    for i, text in enumerate(texts):
+        extracted_items = extract_structured_info(text)
+        if not extracted_items:
+            metadata = {"text": text, "Raw Materials": "", "Sub QTY": ""}
+            vectors.append((f"id-{i}", embeddings[i], metadata))
+            all_metadata.append(metadata)
+        else:
+            for j, item in enumerate(extracted_items):
+                metadata = {
+                    "text": text,
+                    "Raw Materials": item.get("Raw Materials", ""),
+                    "Sub QTY": item.get("Sub QTY", 0)
+                }
+                vectors.append((f"id-{i}-{j}", embeddings[i], metadata))
+                all_metadata.append(metadata)
+
+    index.upsert(vectors=vectors)
+    logger.info(f"Upserted {len(vectors)} vectors into index '{PINECONE_INDEX_NAME}'")
+
+    # ✅ Save metadata to file
+    os.makedirs("outputs", exist_ok=True)
+    with open("outputs/pinecone_metadata.json", "w") as f:
+        json.dump(all_metadata, f, indent=2)
+
+    return f"Upserted {len(vectors)} vectors"
+def get_all_pinecone_data():
+    try:
+        with open("outputs/pinecone_metadata.json", "r") as f:
+            data = json.load(f)
+        return data
+    except Exception as e:
+        logger.warning("No local Pinecone metadata found or failed to load.")
+        return []

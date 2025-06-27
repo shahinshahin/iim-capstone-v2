@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 import shutil
 import os
 
-from vector_store import embed_and_store, query_index, compute_material_cost
+from vector_store import embed_and_store, query_index, compute_material_cost,get_all_pinecone_data
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -16,9 +16,24 @@ UPLOAD_DIR = "temp_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def form_page(request: Request, message: str = ""):
+    pinecone_data = get_all_pinecone_data()
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "message": message,
+        "pinecone_data": pinecone_data
+    })
 
+from fastapi.responses import JSONResponse
+
+@app.get("/fetch-data")
+async def fetch_pinecone_data():
+    data = get_all_pinecone_data()
+    return JSONResponse(content=data)
+
+
+from fastapi.responses import RedirectResponse
+from urllib.parse import urlencode
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
@@ -27,7 +42,8 @@ async def upload_file(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, f)
 
     msg = embed_and_store(temp_file_path)
-    return RedirectResponse("/", status_code=303)
+    query_params = urlencode({"message": "File uploaded and indexed successfully!"})
+    return RedirectResponse(f"/?{query_params}", status_code=303)
 
 
 @app.post("/query", response_class=HTMLResponse)
@@ -37,32 +53,27 @@ async def run_query(request: Request, query: str = Form(...)):
 
 @app.post("/query/cost", response_class=HTMLResponse)
 async def query_with_cost(request: Request, query: str = Form(...)):
-    extracted = query_index(query)
+    extracted_list = query_index(query)  # now returns a list of dicts
 
-    # Handle different formats from Pinecone metadata
-    raw_materials = extracted.get("Raw Materials", [])
-    quantities = extracted.get("Sub QTY", [])
-    
-    if isinstance(raw_materials, str):
-        raw_materials = [raw_materials]
-    if isinstance(quantities, (int, float, str)):
-        quantities = [quantities]
-
-    # Ensure both lists are aligned
     materials = []
-    for i in range(len(raw_materials)):
-        materials.append({
-            "Raw Materials": raw_materials[i],
-            "Sub QTY": quantities[i] if i < len(quantities) else 1,
-            "Original": extracted.get("Original", "")  # For fuzzy match fallback
-        })
+    for item in extracted_list:
+        raw_material = item.get("Raw Materials", "")
+        sub_qty = item.get("Sub QTY", 1)
+        original = item.get("Original", "")
+
+        if isinstance(raw_material, str) and raw_material.strip():
+            materials.append({
+                "Raw Materials": raw_material,
+                "Sub QTY": sub_qty,
+                "Original": original
+            })
 
     cost_result = compute_material_cost(materials)
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "cost_result": cost_result,
-        "result": extracted
+        "result": materials  # you can use this if needed in the HTML
     })
 
 @app.get("/download-cost-summary")

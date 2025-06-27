@@ -1,129 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Capstone Smart App</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
-            padding: 50px;
-        }
+  <meta charset="UTF-8">
+  <title>Capstone Smart App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #eef2f7;
+      color: #333;
+      padding: 40px;
+    }
 
-        .container {
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 800px;
-            margin: auto;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
+    .container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 900px;
+      margin: auto;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    }
 
-        input[type="file"], input[type="text"] {
-            padding: 12px;
-            width: 100%;
-            margin: 10px 0 20px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-        }
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
 
-        button {
-            background-color: #3498db;
-            color: white;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
+    input[type="file"],
+    input[type="text"] {
+      padding: 12px;
+      width: 100%;
+      margin: 10px 0 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
 
-        button:hover {
-            background-color: #2980b9;
-        }
+    button {
+      background-color: #3498db;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
+    button:hover {
+      background-color: #2c80b4;
+      transform: translateY(-1px);
+    }
 
-        table, th, td {
-            border: 1px solid #ccc;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
 
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #ddd;
+    }
 
-        .result, .cost-result {
-            margin-top: 20px;
-            padding: 10px;
-            background: #ecf0f1;
-        }
-    </style>
+    th {
+      background-color: #3498db;
+      color: white;
+      text-align: left;
+    }
+
+    tr:hover {
+      background-color: #f1f7ff;
+    }
+
+    .result, .cost-result {
+      margin-top: 25px;
+      padding: 15px;
+      background: #f7fafc;
+      border-left: 4px solid #3498db;
+      border-radius: 8px;
+      font-family: monospace;
+    }
+
+    .message {
+      color: #e74c3c;
+      font-weight: bold;
+      margin-bottom: 20px;
+      border: 1px solid #e0b4b4;
+      background-color: #fdecea;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    #pinecone-data-output {
+      margin-top: 30px;
+    }
+  </style>
 </head>
 <body>
 <div class="container">
-    <h2>Upload a File</h2>
-    <form action="/upload" enctype="multipart/form-data" method="post">
-        <input name="file" type="file" required />
-        <button type="submit">Upload & Process</button>
-    </form>
+  <h2>📁 Upload a BOQ File</h2>
 
-    {% if result %}
-    <div class="result">
-        <h3>Result:</h3>
-        <pre>{{ result }}</pre>
-    </div>
-    {% endif %}
+  <form action="/upload" enctype="multipart/form-data" method="post">
+    <input name="file" type="file" required />
+    <button type="submit">Upload & Process</button>
+  </form>
 
-    <h2>Ask a Question</h2>
-    <form action="/query" method="post">
-        <input type="text" name="query" placeholder="Enter your query here..." required>
-        <button type="submit">Search</button>
-    </form>
+  {% if message %}
+  <div class="message">
+    {{ message }}
+  </div>
+  {% endif %}
 
-    {% if result %}
-    <div class="result">
-        <h3>Answer:</h3>
-        <p>{{ result }}</p>
-    </div>
-    {% endif %}
+  {% if result %}
+  <div class="result">
+    <h3>🔍 Extracted Result:</h3>
+    <pre>{{ result }}</pre>
+  </div>
+  {% endif %}
 
-    <h2>Check Material Cost</h2>
-    <form action="/query/cost" method="post">
-        <input type="text" name="query" placeholder="e.g. How much does a 40A 4P RCCB cost?" required>
-        <button type="submit">Check Cost</button>
-    </form>
+  <div class="btn-group">
+    <button onclick="loadPineconeData()">📊 Show Uploaded Pinecone Data</button>
+  </div>
 
-    {% if cost_result %}
-    <div class="cost-result">
-        <h3>Material Cost Summary:</h3>
-        <table>
-            <tr>
-                <th>Raw Material</th>
-                <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Discount</th>
-                <th>Total</th>
-            </tr>
-            {% for item in cost_result %}
-            <tr>
-                <td>{{ item["Raw Material"] }}</td>
-                <td>{{ item["Quantity"] }}</td>
-                <td>{{ item["Unit Price"] }}</td>
-                <td>{{ item["Discount"] }}</td>
-                <td>{{ item["Total"] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-    <br>
-    <a href="/download-cost-summary" target="_blank">📥 Download Cost Summary Excel</a>
-    {% endif %}
+  <div id="pinecone-data-output"></div>
 </div>
+
+<script>
+  async function loadPineconeData() {
+    const outputDiv = document.getElementById("pinecone-data-output");
+    outputDiv.innerHTML = "<em>Loading data...</em>";
+
+    try {
+      const response = await fetch("/fetch-data");
+      const data = await response.json();
+
+      if (data.length === 0) {
+        outputDiv.innerHTML = "<p>No data found in Pinecone.</p>";
+        return;
+      }
+
+      let html = "<table><thead><tr><th>Raw Material</th><th>Quantity</th><th>Original</th></tr></thead><tbody>";
+      data.forEach(item => {
+        const raw = item["Raw Materials"] || "";
+        const qty = item["Sub QTY"] || "";
+        const original = item["Original"] || item["text"] || "";
+        html += `<tr><td>${raw}</td><td>${qty}</td><td>${original}</td></tr>`;
+      });
+      html += "</tbody></table>";
+
+      outputDiv.innerHTML = html;
+    } catch (error) {
+      outputDiv.innerHTML = `<p style='color: red;'>Error loading data: ${error}</p>`;
+    }
+  }
+</script>
 </body>
 </html>

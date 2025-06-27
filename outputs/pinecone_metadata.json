@@ -1,0 +1,82 @@
+[
+  {
+    "text": "nan",
+    "Raw Materials": "",
+    "Sub QTY": ""
+  },
+  {
+    "text": "MCB DB",
+    "Raw Materials": "MCB DB",
+    "Sub QTY": 1
+  },
+  {
+    "text": "6Way TPN DB ( Total module cutout: 8 incomer + 18 outgoing )",
+    "Raw Materials": "TPN DB",
+    "Sub QTY": 1
+  },
+  {
+    "text": "6Way TPN DB ( Total module cutout: 8 incomer + 18 outgoing )",
+    "Raw Materials": "module cutout",
+    "Sub QTY": 26
+  },
+  {
+    "text": "Flush mounted, horizontal mounting type, flush type double door, IP43, metal door - Three Phase DB   ",
+    "Raw Materials": "Flush mounted",
+    "Sub QTY": 1
+  },
+  {
+    "text": "Flush mounted, horizontal mounting type, flush type double door, IP43, metal door - Three Phase DB   ",
+    "Raw Materials": "Horizontal mounting type",
+    "Sub QTY": 1
+  },
+  {
+    "text": "Flush mounted, horizontal mounting type, flush type double door, IP43, metal door - Three Phase DB   ",
+    "Raw Materials": "Flush type double door",
+    "Sub QTY": 1
+  },
+  {
+    "text": "Flush mounted, horizontal mounting type, flush type double door, IP43, metal door - Three Phase DB   ",
+    "Raw Materials": "IP43",
+    "Sub QTY": 1
+  },
+  {
+    "text": "Flush mounted, horizontal mounting type, flush type double door, IP43, metal door - Three Phase DB   ",
+    "Raw Materials": "Metal door",
+    "Sub QTY": 1
+  },
+  {
+    "text": "Flush mounted, horizontal mounting type, flush type double door, IP43, metal door - Three Phase DB   ",
+    "Raw Materials": "Three Phase DB",
+    "Sub QTY": 1
+  },
+  {
+    "text": "Incomer : 40A 4P, RCCB, 30mA & AC type- 1 No. per DB",
+    "Raw Materials": "40A 4P RCCB",
+    "Sub QTY": 1
+  },
+  {
+    "text": "Incomer : 40A 4P, RCCB, 30mA & AC type- 1 No. per DB",
+    "Raw Materials": "30mA & AC type",
+    "Sub QTY": 1
+  },
+  {
+    "text": "Outgoings : 6/10A SP, MCBs ( 'B' CURVE ) - 6 Nos. per DB ",
+    "Raw Materials": "6/10A SP, MCBs ('B' CURVE)",
+    "Sub QTY": 6
+  },
+  {
+    "text": "Outgoings : 16/20A SP, MCBs ( 'C' CURVE ) - 8 Nos. per DB",
+    "Raw Materials": "16/20A SP, MCBs ('C' CURVE)",
+    "Sub QTY": 8
+  },
+  {
+    "text": "Outgoing: 32A 4P, MCB ('C' CURVE )- 1 No. per DB",
+    "Raw Materials": "32A 4P MCB ('C' CURVE)",
+    "Sub QTY": 1
+  },
+  {
+    "text": "nan",
+    "Raw Materials": "",
+    "Sub QTY": ""
+  }
+]
