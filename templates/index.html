@@ -15,36 +15,26 @@
             background: #fff;
             padding: 30px;
             border-radius: 12px;
-            max-width: 700px;
+            max-width: 800px;
             margin: auto;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
-        h2 {
-            color: #2c3e50;
-        }
-
-        form {
-            margin-bottom: 30px;
-        }
-
-        input[type="file"],
-        input[type="text"] {
+        input[type="file"], input[type="text"] {
             padding: 12px;
             width: 100%;
             margin: 10px 0 20px;
             border: 1px solid #ccc;
             border-radius: 6px;
-            box-sizing: border-box;
         }
 
         button {
             background-color: #3498db;
-            border: none;
             color: white;
-            padding: 12px 20px;
-            font-size: 16px;
+            padding: 10px 16px;
+            border: none;
             border-radius: 6px;
+            font-size: 16px;
             cursor: pointer;
             transition: background 0.3s ease;
         }
@@ -53,12 +43,25 @@
             background-color: #2980b9;
         }
 
-        .result {
-            background-color: #ecf0f1;
-            padding: 20px;
-            border-left: 5px solid #3498db;
+        table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 20px;
-            white-space: pre-wrap;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .result, .cost-result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #ecf0f1;
         }
     </style>
 </head>
@@ -66,9 +69,16 @@
 <div class="container">
     <h2>Upload a File</h2>
     <form action="/upload" enctype="multipart/form-data" method="post">
-        <input type="file" name="file" required>
-        <button type="submit">Upload</button>
+        <input name="file" type="file" required />
+        <button type="submit">Upload & Process</button>
     </form>
+
+    {% if result %}
+    <div class="result">
+        <h3>Result:</h3>
+        <pre>{{ result }}</pre>
+    </div>
+    {% endif %}
 
     <h2>Ask a Question</h2>
     <form action="/query" method="post">
@@ -76,11 +86,44 @@
         <button type="submit">Search</button>
     </form>
 
- {% if result %}
-  <h3>Result:</h3>
-  <p>{{ result }}</p>
-{% endif %}
+    {% if result %}
+    <div class="result">
+        <h3>Answer:</h3>
+        <p>{{ result }}</p>
+    </div>
+    {% endif %}
 
+    <h2>Check Material Cost</h2>
+    <form action="/query/cost" method="post">
+        <input type="text" name="query" placeholder="e.g. How much does a 40A 4P RCCB cost?" required>
+        <button type="submit">Check Cost</button>
+    </form>
+
+    {% if cost_result %}
+    <div class="cost-result">
+        <h3>Material Cost Summary:</h3>
+        <table>
+            <tr>
+                <th>Raw Material</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Discount</th>
+                <th>Total</th>
+            </tr>
+            {% for item in cost_result %}
+            <tr>
+                <td>{{ item["Raw Material"] }}</td>
+                <td>{{ item["Quantity"] }}</td>
+                <td>{{ item["Unit Price"] }}</td>
+                <td>{{ item["Discount"] }}</td>
+                <td>{{ item["Total"] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <br>
+    <a href="/download-cost-summary" target="_blank">📥 Download Cost Summary Excel</a>
+    {% endif %}
 </div>
 </body>
 </html>
