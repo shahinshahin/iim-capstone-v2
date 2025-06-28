@@ -4,6 +4,7 @@ jinja2
 pandas
 openpyxl
 python-dotenv
-pinecone-client
+pinecone
 sentence-transformers
 openai
+python-multipart
